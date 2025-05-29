@@ -4,9 +4,9 @@ from pprint import pprint
 from bisect import bisect_left, insort
 
 
-coord = [[3, 0], [6, 2], [8, -2], [7, 5], [11, 4], [14, 10], 
-         [13, 9], [11, 15], [9, 13], [7, 15], [5, 12], [6, 10], 
-         [5, 7], [4, 9], [1, 4]]
+coord = [[12, 14], [10, 13], [9, 16], [7, 14], [5, 16], [4, 12], 
+         [3, 13], [2, 7], [4, 8], [3, 2], [5, 4], [7, 2], 
+         [8, 5], [10, 4], [10, 9]]
 coord.append(coord[0]) # Powtórzenie ostatniego punktu by zamknąć figurę
 
 labels = list(string.ascii_uppercase)
@@ -133,13 +133,23 @@ def remove_edge(T, edge_name):
     print(f"Usunięto wierzchołek {edge_name} z T")
 
 def find_left_edge(T, x):
-  idx = bisect_left(T, x)
   if not T:
     print("  T jest pusty")
     return None
-  if idx == 0:
-    return T[-1]
-  return T[idx - 1]
+  
+  x_num = int(x[1:])
+  
+  # Znajdź wszystkie krawędzie o numerze mniejszym niż x_num
+  left_candidates = [e for e in T if int(e[1:]) < x_num]
+  
+  if left_candidates:
+    # Zwróć krawędź o największym numerze spośród tych na lewo
+    return max(left_candidates, key=lambda e: int(e[1:]))
+  else:
+    # Jeśli nie ma krawędzi na lewo, zwróć pierwszą w T (posortowanym numerycznie)
+    T_sorted = sorted(T, key=lambda e: int(e[1:]))
+    return T_sorted[0]
+
 
 def find_right_edge(T, x):
   idx = bisect_left(T, x)
@@ -154,6 +164,7 @@ def handle_start_vertex(point, vertices, edges):
   edge_name = f"e{i}"  
   insert_edge(T, edge_name) # Dodanie punktu do T
   helper_dict[edge_name] = point[0] # Dodanie pomocnika do listy pomocników
+  print(f" Pomocnik {edge_name} = {point[0]}")
 
 def handle_end_vertex(point, types, vertices, edges):
   i = vertices[point[0]]
@@ -179,11 +190,13 @@ def handle_split_vertex(point, types, vertices, edges):
       add_diametral(vi, helper_of_j)
     # 3. pomocnik(ej) = vi
     helper_dict[edge_j_name] = vi
+    print(f" Pomocnik {edge_j_name} = {vi}")
   else:
     print(f"Warning: Nie znaleziono wierzchołka {vi}")
   # 4. Wstaw ei w T i ustaw pomocnik(ei) na vi.
   insert_edge(T, edge_i_name)
   helper_dict[edge_i_name] = vi
+  print(f" Pomocnik {edge_j_name} = {vi}")
 
 def handle_merge_vertex(point, types, vertices, edges):
   i = vertices[point[0]]
@@ -200,14 +213,16 @@ def handle_merge_vertex(point, types, vertices, edges):
   # Szukaj w T krawędzi ej bezpośrednio na lewo od vi
   vi = point[0]
   edge_left = find_left_edge(T, f"e{i}")
+  print(f"Punkt na lewo: {edge_left}")
   if edge_left:
     helper_vertice = helper_dict.get(edge_left)
     if helper_vertice and types[helper_vertice] == 'merge':
-    # print(f"Pomocnik {helper_vertice} jest łączący")
+      print(f"Pomocnik {helper_vertice} jest łączący")
       add_diametral(point[0], helper_vertice)
   else:
     print(f"Pomocnik {helper_vertice} nie jest łączący")
   helper_dict[edge_left] = point[0]
+  print(f" Pomocnik {edge_left} = {point[0]}")
 
 def handle_regular_vertex(point, types, vertices, edges):
   vi = point[0]
@@ -239,6 +254,7 @@ def handle_regular_vertex(point, types, vertices, edges):
     
     # Set helper(ei) to vi
     helper_dict[f"e{i}"] = vi
+    print(f" Pomocnik e{i} = {vi}")
   else:  # Środek figury na lewo od wierzchołka
     edge_left = find_left_edge(T, f"e{i}")
     
@@ -249,6 +265,7 @@ def handle_regular_vertex(point, types, vertices, edges):
         add_diametral(vi, helper_vertex)
       
       helper_dict[edge_left] = vi
+      print(f" Pomocnik {edge_left} = {vi}")
 
 # Szukamy punktu najbardziej na prawo - o najwyższym "x"
 def generate_v_dict(coords):
@@ -308,7 +325,6 @@ def make_monotone(coords):
 def add_diametral(vertice1, vertice2):
   diagonals.append((vertice1, vertice2))
   print(f"  Dodano przekątną pomiędzy {vertice1} a {vertice2}")
-  print(diagonals)
 
 if __name__ == "__main__":
   print("\n--- MakeMonotone ---")
